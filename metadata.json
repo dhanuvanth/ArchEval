@@ -1,0 +1,5 @@
+{
+  "name": "SLM vs LLM Architect",
+  "description": "A decision support system to evaluate whether a project requires a Small Language Model (SLM) or Large Language Model (LLM) based on architectural constraints.",
+  "requestFramePermissions": []
+}
