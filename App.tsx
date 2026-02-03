@@ -57,6 +57,11 @@ export default function App() {
     loadData();
   }, []);
 
+  // --- SCROLL TO TOP ON VIEW CHANGE ---
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
+
   // --- ACTIONS ---
   const handleAssessmentSubmit = async (data: FormData) => {
     // 1. Calculate Score
