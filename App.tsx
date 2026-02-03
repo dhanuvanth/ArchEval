@@ -386,7 +386,7 @@ const RulesPage = () => {
             </ul>
             <div className="flex flex-col justify-center items-center bg-slate-50 rounded-lg p-6">
                <span className="text-slate-900 font-semibold mb-2">LLM Threshold</span>
-               <span className="text-3xl font-bold text-indigo-600">> 25 Points</span>
+               <span className="text-3xl font-bold text-indigo-600">&gt; 25 Points</span>
                <p className="text-xs text-slate-500 mt-2 text-center max-w-xs">If the score exceeds 25, the complexity requires a Large Language Model. Otherwise, a Small Language Model is sufficient.</p>
             </div>
         </div>
