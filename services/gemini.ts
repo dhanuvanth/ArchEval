@@ -72,7 +72,7 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-flash-latest',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 1.1, // High temperature for variety
@@ -98,7 +98,7 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
   }
 };
 
-export const generateEvaluation = async (formData: FormData, decision: ModelChoice, score: number): Promise<string> => {
+export const generateEvaluation = async (formData: FormData, decision: ModelChoice, _score: number): Promise<string> => {
   const apiKey = import.meta.env.VITE_API_KEY;
   if (!apiKey) {
     return "API Key is missing. Unable to generate AI explanation.";
@@ -135,7 +135,7 @@ export const generateEvaluation = async (formData: FormData, decision: ModelChoi
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-flash-latest',
       generationConfig: {
         temperature: 0.7
       }

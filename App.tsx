@@ -3,7 +3,7 @@ import { Navbar } from './components/Navbar';
 import { ViewState, FormData, Submission, ModelChoice, SCORING_THRESHOLD, QUESTIONS } from './types';
 import { generateEvaluation, generateRandomScenario } from './services/gemini';
 import { fetchSubmissions, saveSubmission } from './services/database';
-import { CheckCircle2, AlertCircle, ArrowRight, Lock, Server, Cpu, Wifi, ShieldCheck, FileText, User, Activity, Beaker, Sparkles, BrainCircuit, Globe, Database } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ArrowRight, Lock, Server, Cpu, ShieldCheck, FileText, Activity, Sparkles, BrainCircuit } from 'lucide-react';
 
 // --- Page Components Defined Below within App.tsx to maintain single file requirement structure per instructions where possible, 
 // though split for clarity is handled by conditional rendering ---
