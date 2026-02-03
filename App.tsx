@@ -569,7 +569,7 @@ const LoginPage = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Simple client-side check for demo purposes
-        if (password === 'admin123' || password === 'admin') {
+        if (password === '$Infovision2026$') {
             onLogin(true);
         } else {
             setError(true);
@@ -603,10 +603,6 @@ const LoginPage = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
                     <button type="submit" className="w-full bg-slate-900 text-white font-bold text-base py-3 rounded-lg hover:bg-slate-800 transition shadow-lg">
                         Access Dashboard
                     </button>
-                    
-                     <div className="mt-5 text-center">
-                        <p className="text-xs text-slate-400">Hint: admin123</p>
-                    </div>
                 </form>
             </div>
         </div>
@@ -617,6 +613,16 @@ const LoginPage = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
 // PAGE 5: ADMIN
 // ==========================================
 const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+
+    const handleRowClick = (submission: Submission) => {
+        setSelectedSubmission(submission);
+    };
+
+    const handleCloseDetail = () => {
+        setSelectedSubmission(null);
+    };
+
     return (
         <div className="max-w-6xl mx-auto w-full px-6 py-10">
              <div className="flex justify-between items-center mb-8">
@@ -648,7 +654,11 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
                             {submissions.map((sub) => (
-                                <tr key={sub.id} className="hover:bg-slate-50 transition">
+                                <tr 
+                                    key={sub.id} 
+                                    onClick={() => handleRowClick(sub)}
+                                    className="hover:bg-slate-50 transition cursor-pointer"
+                                >
                                     <td className="px-6 py-5 whitespace-nowrap">
                                         <div className="text-sm font-bold text-slate-900">{sub.data.projectName}</div>
                                         <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">{sub.data.projectDescription}</div>
@@ -682,6 +692,151 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                     </table>
                 </div>
             </div>
+
+            {/* Detail Modal */}
+            {selectedSubmission && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={handleCloseDetail}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className={`p-8 ${selectedSubmission.decision === ModelChoice.LLM ? 'bg-gradient-to-br from-indigo-900 to-purple-800' : 'bg-gradient-to-br from-emerald-800 to-teal-700'} text-white relative`}>
+                            <button 
+                                onClick={handleCloseDetail}
+                                className="absolute top-6 right-6 text-white/80 hover:text-white transition"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <h2 className="text-3xl font-bold mb-2">{selectedSubmission.data.projectName}</h2>
+                            <p className="text-white/90 mb-4">{selectedSubmission.data.projectDescription}</p>
+                            <div className="flex items-center gap-4">
+                                <span className="text-5xl font-black">{selectedSubmission.decision === ModelChoice.LLM ? 'LLM' : 'SLM'}</span>
+                                <div>
+                                    <p className="text-sm opacity-80">Score: {selectedSubmission.score} / {selectedSubmission.maxScore}</p>
+                                    <p className="text-sm opacity-80">Date: {selectedSubmission.timestamp.toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            {selectedSubmission.hardBlocker && (
+                                <div className="mt-4 inline-flex items-center bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                                    <Lock className="w-4 h-4 mr-2 text-red-300" />
+                                    <p className="text-sm font-medium">Hard Blocker: {selectedSubmission.hardBlocker}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8 space-y-6">
+                            {/* User Info */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
+                                    <User className="w-5 h-5 mr-2 text-indigo-600" />
+                                    User Information
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500 uppercase">Name</p>
+                                        <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.userName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500 uppercase">Email</p>
+                                        <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.email}</p>
+                                    </div>
+                                    {selectedSubmission.data.companyName && (
+                                        <div className="col-span-2">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase">Company</p>
+                                            <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.companyName}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* AI Explanation */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
+                                    <BrainCircuit className="w-5 h-5 mr-2 text-indigo-600" />
+                                    AI Executive Summary
+                                </h3>
+                                <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
+                                    <p className="text-slate-700 leading-relaxed whitespace-pre-line">{selectedSubmission.aiExplanation}</p>
+                                </div>
+                            </div>
+
+                            {/* Gatekeeper Responses */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
+                                    <ShieldCheck className="w-5 h-5 mr-2 text-red-600" />
+                                    Gatekeeper Responses
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {GATEKEEPER_QUESTIONS.map((q) => {
+                                        const value = selectedSubmission.data[q.id as keyof FormData];
+                                        return (
+                                            <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{q.label}</p>
+                                                <p className={`text-sm font-bold ${value ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                    {value ? 'Yes' : 'No'}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase mb-1">External API Dependency</p>
+                                        <p className="text-sm font-bold text-slate-900 capitalize">
+                                            {selectedSubmission.data.g5_externalApi?.replace('_', ' ')}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Scored Responses */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
+                                    <Activity className="w-5 h-5 mr-2 text-indigo-600" />
+                                    Scored Dimensions
+                                </h3>
+                                <div className="space-y-3">
+                                    {SCORED_QUESTIONS.map((q) => {
+                                        const value = selectedSubmission.data[q.id as keyof FormData] as number;
+                                        return (
+                                            <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <p className="text-sm font-medium text-slate-800 flex-1">{q.text}</p>
+                                                    <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded ml-2">
+                                                        Weight: {q.weight}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex gap-1 flex-1">
+                                                        {[1, 2, 3, 4, 5].map((v) => (
+                                                            <div
+                                                                key={v}
+                                                                className={`h-2 flex-1 rounded ${
+                                                                    v <= value ? 'bg-indigo-600' : 'bg-slate-200'
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-sm font-bold text-slate-900 w-8 text-right">{value}/5</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Close Button */}
+                            <div className="flex justify-end pt-4 border-t border-slate-200">
+                                <button
+                                    onClick={handleCloseDetail}
+                                    className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-bold"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
