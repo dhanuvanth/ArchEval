@@ -233,7 +233,7 @@ const AssessmentPage = ({ onSubmit }: { onSubmit: (data: FormData) => void }) =>
       <div className="text-center mb-10">
         <h1 className="text-3xl font-extrabold text-slate-900 mb-3 tracking-tight">SLM vs LLM Decision Assessment</h1>
         <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-          Evaluate deployment constraints, scale, and operational readiness to determine the optimal AI architecture.
+          Evaluate deployment constraints, scale, and operational readiness to determine the optimal AI model class.
         </p>
       </div>
 
@@ -411,7 +411,7 @@ const ResultPage = ({ submission, onReset, onViewRules }: { submission: Submissi
       {/* Header Decision */}
       <div className={`text-center py-12 rounded-t-2xl ${isLLM ? 'bg-gradient-to-br from-indigo-900 to-purple-800' : 'bg-gradient-to-br from-emerald-800 to-teal-700'} text-white shadow-2xl relative overflow-hidden`}>
         <div className="relative z-10 px-4">
-            <h2 className="text-sm font-bold uppercase tracking-[0.2em] opacity-80 mb-3">Architectural Recommendation</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] opacity-80 mb-3">Model Class Recommendation</h2>
             <h1 className="text-6xl font-black tracking-tighter mb-4 drop-shadow-lg">{isLLM ? 'LLM' : 'SLM'}</h1>
             <p className="text-2xl font-light opacity-95">{submission.decision}</p>
             {submission.hardBlocker && (
@@ -454,7 +454,7 @@ const ResultPage = ({ submission, onReset, onViewRules }: { submission: Submissi
           </div>
           <div>
             <h3 className="text-xl font-bold text-slate-900 mb-1">Executive Summary</h3>
-            <p className="text-slate-500 text-sm">Generated based on {Object.keys(submission.data).length} architectural constraints</p>
+            <p className="text-slate-500 text-sm">Analysis based on deployment and operational constraints</p>
           </div>
         </div>
 
@@ -554,6 +554,151 @@ const RulesPage = () => {
                 ))}
             </div>
         </div>
+
+        {/* Pros and Cons Section */}
+        <div className="bg-white rounded-xl shadow-md border border-slate-200 p-8">
+            <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Model Class Comparison: Pros & Cons</h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* SLM Pros and Cons */}
+                <div className="border-2 border-emerald-200 rounded-xl p-6 bg-emerald-50/30">
+                    <div className="flex items-center mb-4">
+                        <div className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-lg">SLM</div>
+                        <span className="ml-3 text-sm text-slate-600">Small Language Model</span>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <h3 className="font-bold text-emerald-800 mb-3 text-lg">✓ Pros</h3>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Low Latency:</strong> Fast response times (often sub-100ms), ideal for real-time applications</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Predictable Costs:</strong> Fixed infrastructure costs, no per-token pricing</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Data Privacy:</strong> All data stays within your infrastructure, full control</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Offline Capable:</strong> Works without internet connectivity (edge, mobile, air-gapped)</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Deterministic:</strong> More consistent, reproducible outputs for specific tasks</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Customizable:</strong> Can be fine-tuned for domain-specific performance</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 className="font-bold text-red-800 mb-3 text-lg">✗ Cons</h3>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Infrastructure Burden:</strong> Requires hosting, maintenance, and DevOps expertise</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Limited Capabilities:</strong> Narrower knowledge, struggles with complex or diverse tasks</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Longer Time to Market:</strong> Setup, deployment, and fine-tuning takes weeks/months</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Ongoing Investment:</strong> Model updates, retraining, and monitoring required</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Expertise Required:</strong> Needs ML/AI talent for optimization and maintenance</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                {/* LLM Pros and Cons */}
+                <div className="border-2 border-purple-200 rounded-xl p-6 bg-purple-50/30">
+                    <div className="flex items-center mb-4">
+                        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-lg">LLM</div>
+                        <span className="ml-3 text-sm text-slate-600">Large Language Model</span>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <h3 className="font-bold text-purple-800 mb-3 text-lg">✓ Pros</h3>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Broad Intelligence:</strong> Handles diverse, complex, and open-ended tasks</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Zero Infrastructure:</strong> Fully managed service, no DevOps or hosting required</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Rapid Deployment:</strong> Production-ready in days/weeks via API</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Continuous Updates:</strong> Provider handles improvements, new features automatically</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Scalability:</strong> Auto-scales to handle any volume without infrastructure planning</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Experimentation:</strong> Easy to test, iterate, and pivot without retraining</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 className="font-bold text-red-800 mb-3 text-lg">✗ Cons</h3>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Usage-Based Costs:</strong> Unpredictable expenses that scale with volume (per-token pricing)</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Higher Latency:</strong> Slower responses (typically 500ms-3s), unsuitable for real-time needs</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Data Privacy Risks:</strong> Data leaves your infrastructure, sent to third-party provider</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Vendor Lock-In:</strong> Dependency on external provider, potential for service changes</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Requires Connectivity:</strong> Cannot operate offline or in air-gapped environments</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
+                                <span><strong>Less Control:</strong> Limited customization, cannot guarantee deterministic outputs</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
+                <p className="text-sm text-slate-700 text-center">
+                    <strong>Best Practice:</strong> The optimal choice depends on your specific constraints. Use this assessment tool to evaluate your requirements objectively.
+                </p>
+            </div>
+        </div>
       </div>
     </div>
   );
@@ -584,7 +729,7 @@ const LoginPage = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
                         <Lock className="w-7 h-7 text-indigo-600" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900">Admin Login</h2>
-                    <p className="text-slate-500 text-sm mt-1">Restricted access for architecture review board.</p>
+                    <p className="text-slate-500 text-sm mt-1">Restricted access for model evaluation review board.</p>
                 </div>
                 
                 <form onSubmit={handleSubmit}>
@@ -743,7 +888,7 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                             <div className="p-0">
                                 {/* Decision header (same as ResultPage) */}
                                 <div className={`text-center py-10 px-6 ${selectedSubmission.decision === ModelChoice.LLM ? 'bg-gradient-to-br from-indigo-900 to-purple-800' : 'bg-gradient-to-br from-emerald-800 to-teal-700'} text-white`}>
-                                    <h2 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Architectural recommendation</h2>
+                                    <h2 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Model Class Recommendation</h2>
                                     <h1 className="text-5xl font-black tracking-tighter mb-2">{selectedSubmission.decision === ModelChoice.LLM ? 'LLM' : 'SLM'}</h1>
                                     <p className="text-lg font-light opacity-95">{selectedSubmission.decision}</p>
                                     {selectedSubmission.hardBlocker && (
@@ -778,7 +923,7 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-slate-900">Executive summary</h3>
-                                            <p className="text-slate-500 text-sm">Generated from architectural constraints</p>
+                                            <p className="text-slate-500 text-sm">Analysis based on deployment and operational constraints</p>
                                         </div>
                                     </div>
                                     <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed mb-8">

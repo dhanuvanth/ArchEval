@@ -53,7 +53,7 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-pro',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 1.0
@@ -72,37 +72,84 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
   }
 };
 
-export const generateEvaluation = async (formData: FormData, decision: ModelChoice, _score: number, hardBlocker?: string): Promise<string> => {
+export const generateEvaluation = async (formData: FormData, decision: ModelChoice, score: number, hardBlocker?: string): Promise<string> => {
   const apiKey = import.meta.env.VITE_API_KEY;
   if (!apiKey) return "API Key is missing. Unable to generate AI explanation.";
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
+  // Build detailed list of ALL responses with their values
+  const gatekeeperResponses: string[] = [];
+  const scoredResponses: string[] = [];
+  
+  // Gatekeeper responses (only include if YES)
+  if (formData.g1_edge) gatekeeperResponses.push("✓ On-device/edge deployment required");
+  if (formData.g2_offline) gatekeeperResponses.push("✓ Offline or limited connectivity environment");
+  if (formData.g3_dataResidency) gatekeeperResponses.push("✓ Data must remain within internal infrastructure");
+  if (formData.g4_regulatory) gatekeeperResponses.push("✓ Regulatory/legal requirements for model control");
+  if (formData.g6_infraRefusal) gatekeeperResponses.push("✓ Organization unwilling to manage AI infrastructure");
+  if (formData.g7_timeToMarket) gatekeeperResponses.push("✓ Immediate production readiness required (weeks)");
+  
+  // Scored dimensions - include ALL with their ratings
+  scoredResponses.push(`Sub-100ms response latency is critical: ${formData.s1_latency}/5`);
+  scoredResponses.push(`High or rapidly growing request volumes: ${formData.s2_volume}/5`);
+  scoredResponses.push(`Predictable, fixed costs preferred: ${formData.s3_cost}/5`);
+  scoredResponses.push(`System longevity (3+ years): ${formData.s4_longevity}/5`);
+  scoredResponses.push(`Use case is narrow and well-defined: ${formData.s5_narrowness}/5`);
+  scoredResponses.push(`Domain-specific expertise required: ${formData.s6_domain}/5`);
+  scoredResponses.push(`Consistent, deterministic outputs required: ${formData.s7_determinism}/5`);
+  scoredResponses.push(`Explainability and auditability needed: ${formData.s8_explainability}/5`);
+  scoredResponses.push(`Team readiness to manage infrastructure: ${formData.s9_readiness}/5`);
+  scoredResponses.push(`Willingness to maintain and update models: ${formData.s10_maintenance}/5`);
+  scoredResponses.push(`Investment capacity for infrastructure: ${formData.s11_investment}/5`);
+  scoredResponses.push(`Broad, diverse task requirements: ${formData.s12_breadth}/5 (reverse)`);
+  scoredResponses.push(`Need for experimentation and iteration: ${formData.s13_experimentation}/5 (reverse)`);
+  scoredResponses.push(`Low-volume, occasional usage: ${formData.s14_lowVolume}/5 (reverse)`);
+
   const prompt = `
-    Role: Senior Solutions Architect.
-    Task: Write an executive summary (approx 150 words) justifying the selected AI architecture.
+    Role: Senior AI Solutions Architect evaluating model class selection for "${formData.projectName}".
     
-    Context:
-    - Project: ${formData.projectName}
-    - Description: ${formData.projectDescription}
-    - Decision: ${decision}
-    - Hard Blocker (if any): ${hardBlocker || 'None'}
+    Decision Made: ${decision}
+    ${hardBlocker ? `Hard Blocker: ${hardBlocker}` : `Score: ${score}/280 (Threshold: 130, higher favors SLM)`}
     
-    Key Constraints:
-    - Edge/Offline Required: ${formData.g1_edge || formData.g2_offline}
-    - Data Residency/Regs: ${formData.g3_dataResidency || formData.g4_regulatory}
-    - Infra Refusal: ${formData.g6_infraRefusal}
-    - Time to Market Critical: ${formData.g7_timeToMarket}
+    Task: Provide a DETAILED explanation with comprehensive bullet points for EACH relevant question the user answered. Do NOT use words like "summary" or "executive summary" in your response.
     
-    Instructions:
-    1. If a Hard Blocker exists, start by citing it as the primary reason.
-    2. Explain the trade-offs (Latency vs. Intelligence, Control vs. Convenience).
-    3. Be professional and direct. No markdown.
+    GATEKEEPER RESPONSES (Hard Constraints):
+    ${gatekeeperResponses.length > 0 ? gatekeeperResponses.join('\n') : 'None'}
+    
+    SCORED DIMENSIONS (All ratings):
+    ${scoredResponses.join('\n')}
+    
+    ADDITIONAL CONTEXT:
+    - External API dependency tolerance: ${formData.g5_externalApi?.replace('_', ' ')}
+    - Project description: ${formData.projectDescription}
+    
+    INSTRUCTIONS:
+    1. Start with ONE clear sentence stating why ${decision === ModelChoice.SLM ? 'Small Language Model (SLM)' : 'Large Language Model (LLM)'} was selected.
+    2. Then provide 6-10 detailed bullet points (using • character) covering:
+       - The hard blocker if one exists
+       - Each significant scored dimension (ratings of 4-5 for normal questions, 1-2 for reverse questions)
+       - How each response specifically supports the ${decision} decision
+    3. Each bullet point should:
+       - Reference the specific question/constraint
+       - Include the user's rating/response
+       - Explain WHY this supports the decision
+    4. Use ONLY the bullet character • (not -, *, or numbers)
+    5. Be thorough and detailed - aim for 250-300 words total
+    6. Use plain text only (no markdown formatting)
+    
+    FORMAT EXAMPLE:
+    The ${decision === ModelChoice.SLM ? 'Small Language Model (SLM)' : 'Large Language Model (LLM)'} was selected because [primary reason based on hard blocker or top factors].
+    
+    • [Question 1]: The user rated [X/5], indicating [explanation of how this supports the decision]
+    • [Question 2]: With a score of [Y/5], this shows [detailed reasoning]
+    • [Question 3]: [Gatekeeper response] - This is a hard requirement that [explanation]
+    [Continue for all relevant responses...]
   `;
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-pro',
       generationConfig: {
         temperature: 0.7
       }

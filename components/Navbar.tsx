@@ -15,7 +15,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, isAdmin
         <div className="flex justify-between h-20">
           <div className="flex items-center cursor-pointer" onClick={() => changeView(ViewState.ASSESSMENT)}>
             <Activity className="h-9 w-9 text-indigo-600" />
-            <span className="ml-3 text-2xl font-bold text-slate-800 tracking-tight">ArchEval</span>
+            <span className="ml-3 text-2xl font-bold text-slate-800 tracking-tight">Model Class Evaluation</span>
           </div>
           
           <div className="flex items-center space-x-4">
