@@ -172,7 +172,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
       <Navbar currentView={view} changeView={setView} isAdmin={isAdmin} />
       
-      <main className="flex-grow flex flex-col">
+      <main className="flex-grow flex flex-col min-h-0">
         {view === ViewState.ASSESSMENT && <AssessmentPage onSubmit={handleAssessmentSubmit} />}
         {view === ViewState.RESULT && currentSubmission && <ResultPage submission={currentSubmission} onReset={() => setView(ViewState.ASSESSMENT)} onViewRules={() => setView(ViewState.RULES)} />}
         {view === ViewState.RULES && <RulesPage />}
@@ -610,233 +610,202 @@ const LoginPage = ({ onLogin }: { onLogin: (success: boolean) => void }) => {
 };
 
 // ==========================================
-// PAGE 5: ADMIN
+// PAGE 5: ADMIN — Split screen 30% list / 70% read-only form + result
 // ==========================================
 const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
     const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
-    const handleRowClick = (submission: Submission) => {
-        setSelectedSubmission(submission);
-    };
-
-    const handleCloseDetail = () => {
-        setSelectedSubmission(null);
-    };
-
     return (
-        <div className="max-w-6xl mx-auto w-full px-6 py-10">
-             <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Assessment Dashboard</h1>
-                    <p className="text-slate-500 text-base mt-0.5">Reviewing {submissions.length} architecture decisions</p>
-                </div>
-                <div className="flex space-x-3">
-                    <div className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-bold shadow-sm">
-                        LLM: {submissions.filter(s => s.decision === ModelChoice.LLM).length}
+        <div className="flex flex-1 min-h-0 w-full">
+            {/* LEFT 30% — User list */}
+            <div className="w-[30%] min-w-[260px] max-w-[400px] flex flex-col border-r border-slate-200 bg-white overflow-hidden flex-shrink-0">
+                <div className="flex-shrink-0 px-4 py-4 border-b border-slate-200 bg-slate-50">
+                    <h1 className="text-lg font-bold text-slate-900">Assessment Dashboard</h1>
+                    <p className="text-slate-500 text-sm mt-0.5">{submissions.length} submissions</p>
+                    <div className="flex gap-2 mt-3">
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-bold">
+                            LLM: {submissions.filter(s => s.decision === ModelChoice.LLM).length}
+                        </span>
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">
+                            SLM: {submissions.filter(s => s.decision === ModelChoice.SLM).length}
+                        </span>
                     </div>
-                    <div className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold shadow-sm">
-                        SLM: {submissions.filter(s => s.decision === ModelChoice.SLM).length}
-                    </div>
                 </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Project</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Decision</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Score</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-200">
+                <div className="flex-1 overflow-y-auto">
+                    {submissions.length === 0 ? (
+                        <div className="p-6 text-center text-slate-500 text-sm">No assessments recorded yet.</div>
+                    ) : (
+                        <ul className="divide-y divide-slate-100">
                             {submissions.map((sub) => (
-                                <tr 
-                                    key={sub.id} 
-                                    onClick={() => handleRowClick(sub)}
-                                    className="hover:bg-slate-50 transition cursor-pointer"
+                                <li
+                                    key={sub.id}
+                                    onClick={() => setSelectedSubmission(sub)}
+                                    className={`px-4 py-4 cursor-pointer transition ${
+                                        selectedSubmission?.id === sub.id
+                                            ? 'bg-indigo-50 border-l-4 border-indigo-600'
+                                            : 'hover:bg-slate-50 border-l-4 border-transparent'
+                                    }`}
                                 >
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <div className="text-sm font-bold text-slate-900">{sub.data.projectName}</div>
-                                        <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">{sub.data.projectDescription}</div>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-slate-900">{sub.user}</div>
-                                        <div className="text-xs text-slate-500">{sub.data.email}</div>
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm ${sub.decision === ModelChoice.SLM ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-purple-100 text-purple-800 border border-purple-200'}`}>
+                                    <div className="font-semibold text-slate-900 text-sm truncate">{sub.data.projectName}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5 truncate">{sub.user}</div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${sub.decision === ModelChoice.SLM ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'}`}>
                                             {sub.decision === ModelChoice.SLM ? 'SLM' : 'LLM'}
                                         </span>
-                                        {sub.hardBlocker && <div className="mt-1.5 text-xs text-red-500 font-semibold flex items-center"><Lock className="w-3 h-3 mr-1"/> Forced</div>}
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-slate-600">
-                                        {sub.score} / {sub.maxScore}
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-slate-500">
-                                        {sub.timestamp.toLocaleDateString()}
-                                    </td>
-                                </tr>
+                                        {sub.hardBlocker && <Lock className="w-3 h-3 text-red-500 flex-shrink-0" />}
+                                        <span className="text-xs text-slate-400">{sub.timestamp.toLocaleDateString()}</span>
+                                    </div>
+                                </li>
                             ))}
-                            {submissions.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 text-base">
-                                        No assessments recorded yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                        </ul>
+                    )}
                 </div>
             </div>
 
-            {/* Detail Modal */}
-            {selectedSubmission && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={handleCloseDetail}>
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        {/* Header */}
-                        <div className={`p-8 ${selectedSubmission.decision === ModelChoice.LLM ? 'bg-gradient-to-br from-indigo-900 to-purple-800' : 'bg-gradient-to-br from-emerald-800 to-teal-700'} text-white relative`}>
-                            <button 
-                                onClick={handleCloseDetail}
-                                className="absolute top-6 right-6 text-white/80 hover:text-white transition"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                            <h2 className="text-3xl font-bold mb-2">{selectedSubmission.data.projectName}</h2>
-                            <p className="text-white/90 mb-4">{selectedSubmission.data.projectDescription}</p>
-                            <div className="flex items-center gap-4">
-                                <span className="text-5xl font-black">{selectedSubmission.decision === ModelChoice.LLM ? 'LLM' : 'SLM'}</span>
+            {/* RIGHT 70% — Read-only form + result (Page 2 content) concatenated */}
+            <div className="flex-1 overflow-y-auto bg-slate-50">
+                {!selectedSubmission ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-base">
+                        Select a submission from the list to view details
+                    </div>
+                ) : (
+                    <div className="p-6 max-w-4xl mx-auto space-y-6 pb-12">
+                        {/* ——— PART 1: Read-only form they filled ——— */}
+                        <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="bg-slate-100 px-4 py-2 border-b border-slate-200">
+                                <h2 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Submitted form (read-only)</h2>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                {/* User info */}
                                 <div>
-                                    <p className="text-sm opacity-80">Score: {selectedSubmission.score} / {selectedSubmission.maxScore}</p>
-                                    <p className="text-sm opacity-80">Date: {selectedSubmission.timestamp.toLocaleDateString()}</p>
+                                    <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center">
+                                        <User className="w-4 h-4 mr-2 text-indigo-600" /> User information
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div><span className="text-slate-500 block text-xs">Name</span><span className="font-medium text-slate-900">{selectedSubmission.data.userName}</span></div>
+                                        <div><span className="text-slate-500 block text-xs">Email</span><span className="font-medium text-slate-900">{selectedSubmission.data.email}</span></div>
+                                        {selectedSubmission.data.companyName && <div className="col-span-2"><span className="text-slate-500 block text-xs">Company</span><span className="font-medium text-slate-900">{selectedSubmission.data.companyName}</span></div>}
+                                        <div className="col-span-2"><span className="text-slate-500 block text-xs">Project name</span><span className="font-medium text-slate-900">{selectedSubmission.data.projectName}</span></div>
+                                        <div className="col-span-2"><span className="text-slate-500 block text-xs">Project description</span><p className="font-medium text-slate-900 text-sm leading-relaxed">{selectedSubmission.data.projectDescription}</p></div>
+                                    </div>
+                                </div>
+                                {/* Gatekeepers */}
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center">
+                                        <ShieldCheck className="w-4 h-4 mr-2 text-red-600" /> Gatekeepers
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {GATEKEEPER_QUESTIONS.map((q) => {
+                                            const value = selectedSubmission.data[q.id as keyof FormData];
+                                            return (
+                                                <div key={q.id} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                                    <span className="text-slate-700 pr-2">{q.label}</span>
+                                                    <span className={`font-bold flex-shrink-0 ${value ? 'text-emerald-600' : 'text-slate-400'}`}>{value ? 'Yes' : 'No'}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 text-sm col-span-2">
+                                            <span className="text-slate-700">External API dependency</span>
+                                            <span className="font-bold text-slate-900 capitalize">{selectedSubmission.data.g5_externalApi?.replace('_', ' ')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Scored dimensions */}
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center">
+                                        <Activity className="w-4 h-4 mr-2 text-indigo-600" /> Scored dimensions
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {SCORED_QUESTIONS.map((q) => {
+                                            const value = selectedSubmission.data[q.id as keyof FormData] as number;
+                                            return (
+                                                <div key={q.id} className="flex items-center gap-3 text-sm">
+                                                    <span className="text-slate-700 flex-1 min-w-0">{q.text}</span>
+                                                    <div className="flex gap-0.5 flex-shrink-0">
+                                                        {[1, 2, 3, 4, 5].map((v) => (
+                                                            <div key={v} className={`w-5 h-2 rounded-sm ${v <= value ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+                                                        ))}
+                                                    </div>
+                                                    <span className="font-bold text-slate-900 w-6 text-right">{value}/5</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                            {selectedSubmission.hardBlocker && (
-                                <div className="mt-4 inline-flex items-center bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                                    <Lock className="w-4 h-4 mr-2 text-red-300" />
-                                    <p className="text-sm font-medium">Hard Blocker: {selectedSubmission.hardBlocker}</p>
-                                </div>
-                            )}
-                        </div>
+                        </section>
 
-                        {/* Content */}
-                        <div className="p-8 space-y-6">
-                            {/* User Info */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
-                                    <User className="w-5 h-5 mr-2 text-indigo-600" />
-                                    User Information
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
-                                    <div>
-                                        <p className="text-xs font-semibold text-slate-500 uppercase">Name</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.userName}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-slate-500 uppercase">Email</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.email}</p>
-                                    </div>
-                                    {selectedSubmission.data.companyName && (
-                                        <div className="col-span-2">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase">Company</p>
-                                            <p className="text-sm font-medium text-slate-900">{selectedSubmission.data.companyName}</p>
+                        {/* ——— PART 2: Result page content (Page 2) ——— */}
+                        <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="bg-slate-100 px-4 py-2 border-b border-slate-200">
+                                <h2 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Result & recommendation</h2>
+                            </div>
+                            <div className="p-0">
+                                {/* Decision header (same as ResultPage) */}
+                                <div className={`text-center py-10 px-6 ${selectedSubmission.decision === ModelChoice.LLM ? 'bg-gradient-to-br from-indigo-900 to-purple-800' : 'bg-gradient-to-br from-emerald-800 to-teal-700'} text-white`}>
+                                    <h2 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Architectural recommendation</h2>
+                                    <h1 className="text-5xl font-black tracking-tighter mb-2">{selectedSubmission.decision === ModelChoice.LLM ? 'LLM' : 'SLM'}</h1>
+                                    <p className="text-lg font-light opacity-95">{selectedSubmission.decision}</p>
+                                    {selectedSubmission.hardBlocker && (
+                                        <div className="mt-4 inline-flex items-center bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                                            <Lock className="w-4 h-4 mr-2 text-red-300" />
+                                            <span className="text-sm font-medium">Forced by: {selectedSubmission.hardBlocker}</span>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-
-                            {/* AI Explanation */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
-                                    <BrainCircuit className="w-5 h-5 mr-2 text-indigo-600" />
-                                    AI Executive Summary
-                                </h3>
-                                <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
-                                    <p className="text-slate-700 leading-relaxed whitespace-pre-line">{selectedSubmission.aiExplanation}</p>
-                                </div>
-                            </div>
-
-                            {/* Gatekeeper Responses */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
-                                    <ShieldCheck className="w-5 h-5 mr-2 text-red-600" />
-                                    Gatekeeper Responses
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {GATEKEEPER_QUESTIONS.map((q) => {
-                                        const value = selectedSubmission.data[q.id as keyof FormData];
-                                        return (
-                                            <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{q.label}</p>
-                                                <p className={`text-sm font-bold ${value ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                                    {value ? 'Yes' : 'No'}
-                                                </p>
-                                            </div>
-                                        );
-                                    })}
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <p className="text-xs font-semibold text-slate-500 uppercase mb-1">External API Dependency</p>
-                                        <p className="text-sm font-bold text-slate-900 capitalize">
-                                            {selectedSubmission.data.g5_externalApi?.replace('_', ' ')}
-                                        </p>
+                                {/* Score + summary (same as ResultPage) */}
+                                <div className="p-6 md:p-8">
+                                    <div className="mb-8">
+                                        <div className="flex justify-between items-end mb-2">
+                                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Fit score</span>
+                                            <span className="text-base font-bold text-slate-700">{selectedSubmission.score} / {selectedSubmission.maxScore} points</span>
+                                        </div>
+                                        <div className="h-4 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                            <div
+                                                className={`h-full transition-all ${selectedSubmission.decision === ModelChoice.LLM ? 'bg-purple-600' : 'bg-emerald-500'}`}
+                                                style={{ width: `${Math.round((selectedSubmission.score / selectedSubmission.maxScore) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between mt-2 text-xs text-slate-400 font-medium">
+                                            <span>Strongly LLM</span>
+                                            <span className="text-slate-300">| Threshold (130)</span>
+                                            <span>Strongly SLM</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start mb-4">
+                                        <div className="bg-indigo-50 p-2 rounded-lg mr-3">
+                                            <BrainCircuit className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900">Executive summary</h3>
+                                            <p className="text-slate-500 text-sm">Generated from architectural constraints</p>
+                                        </div>
+                                    </div>
+                                    <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed mb-8">
+                                        <p className="whitespace-pre-line">{selectedSubmission.aiExplanation}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-100">
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <span className="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Infrastructure</span>
+                                            <span className="text-slate-900 font-bold">
+                                                {selectedSubmission.data.g6_infraRefusal ? <span className="text-purple-600">Managed (LLM)</span> : <span className="text-emerald-600">Self-hosted (SLM)</span>}
+                                            </span>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <span className="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Connectivity</span>
+                                            <span className="text-slate-900 font-bold">{selectedSubmission.data.g2_offline ? 'Offline required' : 'Online allowed'}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                            <span className="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-1">Time to market</span>
+                                            <span className="text-slate-900 font-bold">{selectedSubmission.data.g7_timeToMarket ? 'Immediate (weeks)' : 'Standard'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Scored Responses */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center">
-                                    <Activity className="w-5 h-5 mr-2 text-indigo-600" />
-                                    Scored Dimensions
-                                </h3>
-                                <div className="space-y-3">
-                                    {SCORED_QUESTIONS.map((q) => {
-                                        const value = selectedSubmission.data[q.id as keyof FormData] as number;
-                                        return (
-                                            <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <p className="text-sm font-medium text-slate-800 flex-1">{q.text}</p>
-                                                    <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded ml-2">
-                                                        Weight: {q.weight}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex gap-1 flex-1">
-                                                        {[1, 2, 3, 4, 5].map((v) => (
-                                                            <div
-                                                                key={v}
-                                                                className={`h-2 flex-1 rounded ${
-                                                                    v <= value ? 'bg-indigo-600' : 'bg-slate-200'
-                                                                }`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <span className="text-sm font-bold text-slate-900 w-8 text-right">{value}/5</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Close Button */}
-                            <div className="flex justify-end pt-4 border-t border-slate-200">
-                                <button
-                                    onClick={handleCloseDetail}
-                                    className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-bold"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
+                        </section>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
