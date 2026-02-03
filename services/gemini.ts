@@ -1,13 +1,14 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { FormData, ModelChoice } from '../types';
 
 export const generateRandomScenario = async (): Promise<FormData | null> => {
-  if (!process.env.API_KEY) {
-    console.warn("API Key missing");
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
+    console.warn("API Key missing for scenario generation");
     return null;
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const genAI = new GoogleGenerativeAI(apiKey);
   const targetIsSLM = Math.random() > 0.5;
 
   const prompt = `
@@ -51,16 +52,18 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { 
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-flash-latest',
+      generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 1.0, 
+        temperature: 1.0
       }
     });
-
-    const text = response.text;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
     if (!text) return null;
     return JSON.parse(text) as FormData;
   } catch (error) {
@@ -69,10 +72,11 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
   }
 };
 
-export const generateEvaluation = async (formData: FormData, decision: ModelChoice, score: number, hardBlocker?: string): Promise<string> => {
-  if (!process.env.API_KEY) return "API Key missing.";
+export const generateEvaluation = async (formData: FormData, decision: ModelChoice, _score: number, hardBlocker?: string): Promise<string> => {
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) return "API Key is missing. Unable to generate AI explanation.";
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const genAI = new GoogleGenerativeAI(apiKey);
 
   const prompt = `
     Role: Senior Solutions Architect.
@@ -82,7 +86,6 @@ export const generateEvaluation = async (formData: FormData, decision: ModelChoi
     - Project: ${formData.projectName}
     - Description: ${formData.projectDescription}
     - Decision: ${decision}
-    - Score: ${score} (High score favors SLM)
     - Hard Blocker (if any): ${hardBlocker || 'None'}
     
     Key Constraints:
@@ -98,13 +101,18 @@ export const generateEvaluation = async (formData: FormData, decision: ModelChoi
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { temperature: 0.7 }
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        temperature: 0.7
+      }
     });
-    return response.text || "Analysis generated.";
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text() || "Analysis generated, but no text returned.";
   } catch (error) {
-    return "Unable to generate explanation.";
+    console.error("AI API Error:", error);
+    return "Unable to generate AI explanation due to a network or API error.";
   }
 };

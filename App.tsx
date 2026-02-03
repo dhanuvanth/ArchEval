@@ -3,7 +3,7 @@ import { Navbar } from './components/Navbar';
 import { ViewState, FormData, Submission, ModelChoice, GATEKEEPER_QUESTIONS, SCORED_QUESTIONS, SCORING_THRESHOLD, MAX_POSSIBLE_SCORE } from './types';
 import { generateEvaluation, generateRandomScenario } from './services/gemini';
 import { fetchSubmissions, saveSubmission } from './services/database';
-import { CheckCircle2, AlertCircle, ArrowRight, Lock, Server, Cpu, Wifi, ShieldCheck, FileText, User, Activity, LayoutDashboard, BrainCircuit, Wallet, Zap, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight, Lock, ShieldCheck, User, Activity, BrainCircuit, Sparkles } from 'lucide-react';
 
 // --- MOCK DATA (Fallback) ---
 const MOCK_SUBMISSIONS: Submission[] = [

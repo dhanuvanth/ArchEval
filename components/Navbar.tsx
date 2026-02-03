@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewState } from '../types';
-import { User, BookOpen, Activity, LayoutDashboard } from 'lucide-react';
+import { User, Activity, LayoutDashboard } from 'lucide-react';
 
 interface NavbarProps {
   currentView: ViewState;
