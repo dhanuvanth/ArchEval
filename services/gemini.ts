@@ -1,151 +1,110 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { FormData, ModelChoice } from '../types';
 
-// Helper to validate the shape of the generated JSON
-const isValidScenario = (data: any): data is FormData => {
-  return data && 
-    typeof data.projectName === 'string' &&
-    typeof data.projectDescription === 'string' &&
-    ['public', 'private', 'hybrid'].includes(data.dataPrivacy) &&
-    ['realtime', 'batch'].includes(data.latency) &&
-    ['simple', 'moderate', 'reasoning'].includes(data.complexity) &&
-    ['edge', 'cloud'].includes(data.hardware) &&
-    ['offline', 'online'].includes(data.connectivity);
-};
-
 export const generateRandomScenario = async (): Promise<FormData | null> => {
-  const apiKey = import.meta.env.VITE_API_KEY;
-  if (!apiKey) {
-    console.warn("API Key missing for scenario generation");
+  if (!process.env.API_KEY) {
+    console.warn("API Key missing");
     return null;
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  
-  // 1. Force a 50/50 Mathematical Split
-  // The scoring threshold is 25. 
-  // > 25 = LLM
-  // <= 25 = SLM
-  const targetIsLLM = Math.random() > 0.5;
-
-  // 2. Construct specific instructions to ensure the score aligns with the target
-  // We explicitly guide the AI to pick options that carry high points (for LLM) or low points (for SLM).
-  // See types.ts for scoring values.
-  const directive = targetIsLLM 
-    ? `TARGET: LARGE LANGUAGE MODEL (LLM). 
-       You MUST generate a scenario that scores HIGH on complexity and scale.
-       MANDATORY CONSTRAINTS (Pick at least 3 of these to ensure LLM fit):
-       - dataPrivacy: 'public' (High Score)
-       - hardware: 'cloud' (High Score)
-       - complexity: 'reasoning' (High Score)
-       - latency: 'batch' (High Score)
-       - connectivity: 'online' (High Score)`
-    : `TARGET: SMALL LANGUAGE MODEL (SLM).
-       You MUST generate a scenario that requires efficiency, privacy, or works on-device.
-       MANDATORY CONSTRAINTS (Pick at least 3 of these to ensure SLM fit):
-       - dataPrivacy: 'private' (Low Score)
-       - hardware: 'edge' (Low Score)
-       - complexity: 'simple' (Low Score)
-       - latency: 'realtime' (Low Score)
-       - connectivity: 'offline' (Low Score)`;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const targetIsSLM = Math.random() > 0.5;
 
   const prompt = `
-    Generate a unique, realistic software project scenario.
+    Generate a realistic enterprise software project scenario for an AI architecture assessment.
     
-    ${directive}
+    Target Outcome: ${targetIsSLM ? "SMALL LANGUAGE MODEL (SLM) - Needs privacy, edge, or offline." : "LARGE LANGUAGE MODEL (LLM) - Needs complex reasoning, cloud, or zero maintenance."}
     
-    1. **Project Content**: The 'projectName' and 'projectDescription' MUST match the constraints chosen.
-       (e.g., If 'offline' and 'edge', describe a field tool or embedded system. If 'cloud' and 'public', describe a web scraper or big data analyzer).
-    2. **Variety**: Within the mandatory constraints, vary the specific combination so it's not identical every time.
-    
-    Return a valid JSON object with these exact keys:
+    Return a valid JSON object matching this TypeScript interface exactly:
     {
-      "projectName": "Creative Name",
-      "projectDescription": "Brief description",
-      "dataPrivacy": "public" | "private" | "hybrid",
-      "latency": "realtime" | "batch",
-      "complexity": "simple" | "moderate" | "reasoning",
-      "hardware": "edge" | "cloud",
-      "connectivity": "offline" | "online"
+      "userName": "Name",
+      "email": "email",
+      "companyName": "Company",
+      "projectName": "Project Name",
+      "projectDescription": "Description > 100 chars",
+      "g1_edge": boolean,
+      "g2_offline": boolean,
+      "g3_dataResidency": boolean,
+      "g4_regulatory": boolean,
+      "g5_externalApi": "not_acceptable" | "risk_mitigation" | "fully_acceptable",
+      "g6_infraRefusal": boolean,
+      "g7_timeToMarket": boolean,
+      "s1_latency": 1-5,
+      "s2_volume": 1-5,
+      "s3_cost": 1-5,
+      "s4_longevity": 1-5,
+      "s5_narrowness": 1-5,
+      "s6_domain": 1-5,
+      "s7_determinism": 1-5,
+      "s8_explainability": 1-5,
+      "s9_readiness": 1-5,
+      "s10_maintenance": 1-5,
+      "s11_investment": 1-5,
+      "s12_breadth": 1-5,
+      "s13_experimentation": 1-5,
+      "s14_lowVolume": 1-5
     }
+
+    Rules:
+    1. If Target is SLM: Set g1, g2, or g3 to true often. Set s1, s2, s5 high (4 or 5).
+    2. If Target is LLM: Set g6 or g7 to true often. Set s12, s13 high (4 or 5).
   `;
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-flash-latest',
-      generationConfig: {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: { 
         responseMimeType: 'application/json',
-        temperature: 1.1, // High temperature for variety
+        temperature: 1.0, 
       }
     });
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+
+    const text = response.text;
     if (!text) return null;
-
-    const data = JSON.parse(text);
-    
-    if (isValidScenario(data)) {
-      return data;
-    }
-    console.warn("Invalid scenario generated:", data);
-    return null;
-
+    return JSON.parse(text) as FormData;
   } catch (error) {
-    console.error("AI Scenario Generation Error:", error);
+    console.error("AI Scenario Gen Error:", error);
     return null;
   }
 };
 
-export const generateEvaluation = async (formData: FormData, decision: ModelChoice, _score: number): Promise<string> => {
-  const apiKey = import.meta.env.VITE_API_KEY;
-  if (!apiKey) {
-    return "API Key is missing. Unable to generate AI explanation.";
-  }
+export const generateEvaluation = async (formData: FormData, decision: ModelChoice, score: number, hardBlocker?: string): Promise<string> => {
+  if (!process.env.API_KEY) return "API Key missing.";
 
-  const genAI = new GoogleGenerativeAI(apiKey);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const prompt = `
-    You are a Senior Solutions Architect. 
-    Analyze the following project requirements and the calculated recommendation.
+    Role: Senior Solutions Architect.
+    Task: Write an executive summary (approx 150 words) justifying the selected AI architecture.
     
-    Project: ${formData.projectName}
-    Desc: ${formData.projectDescription}
+    Context:
+    - Project: ${formData.projectName}
+    - Description: ${formData.projectDescription}
+    - Decision: ${decision}
+    - Score: ${score} (High score favors SLM)
+    - Hard Blocker (if any): ${hardBlocker || 'None'}
     
-    Constraints:
-    - Privacy: ${formData.dataPrivacy}
-    - Latency: ${formData.latency}
-    - Complexity: ${formData.complexity}
-    - Hardware: ${formData.hardware}
-    - Connectivity: ${formData.connectivity}
+    Key Constraints:
+    - Edge/Offline Required: ${formData.g1_edge || formData.g2_offline}
+    - Data Residency/Regs: ${formData.g3_dataResidency || formData.g4_regulatory}
+    - Infra Refusal: ${formData.g6_infraRefusal}
+    - Time to Market Critical: ${formData.g7_timeToMarket}
     
-    Recommendation: ${decision}
-    
-    Task:
-    Provide a professional, concise executive summary (approx 150 words) explaining WHY this specific architecture is the correct choice.
-    Focus on business value, trade-offs, and architectural fit.
-    
-    STRICT RULES:
-    - No technical jargon (e.g. no "tokens", "parameters", "transformers").
-    - No specific model names (e.g. no "Gemini", "GPT", "Llama").
-    - Do not mention you are an AI.
-    - Plain text only (no markdown).
+    Instructions:
+    1. If a Hard Blocker exists, start by citing it as the primary reason.
+    2. Explain the trade-offs (Latency vs. Intelligence, Control vs. Convenience).
+    3. Be professional and direct. No markdown.
   `;
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-flash-latest',
-      generationConfig: {
-        temperature: 0.7
-      }
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: { temperature: 0.7 }
     });
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text() || "Analysis generated, but no text returned.";
+    return response.text || "Analysis generated.";
   } catch (error) {
-    console.error("AI API Error:", error);
-    return "Unable to generate AI explanation due to a network or API error.";
+    return "Unable to generate explanation.";
   }
 };
