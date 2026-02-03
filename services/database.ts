@@ -14,7 +14,8 @@ import { Submission } from '../types';
  *   data jsonb,
  *   score numeric,
  *   decision text,
- *   ai_explanation text
+ *   ai_explanation text,
+ *   hard_blocker text
  * );
  * 
  * 3. Retrieve your URL and ANON KEY from Project Settings -> API.
@@ -23,8 +24,8 @@ import { Submission } from '../types';
 
 // NOTE: These should be set in your environment variables.
 // If missing, the app will gracefully fallback to local mock data.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 
 const supabase = (supabaseUrl && supabaseKey) 
   ? createClient(supabaseUrl, supabaseKey) 
@@ -54,7 +55,8 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     // Ensure data JSONB field is handled if Supabase returns it as string or object
     data: typeof d.data === 'string' ? JSON.parse(d.data) : d.data,
     // Map database column names back to TypeScript interface if needed
-    user: d.user_name || d.user
+    user: d.user_name || d.user,
+    hardBlocker: d.hard_blocker
   })) as Submission[];
 };
 
@@ -70,7 +72,8 @@ export const saveSubmission = async (submission: Submission): Promise<boolean> =
       data: submission.data,
       score: submission.score,
       decision: submission.decision,
-      ai_explanation: submission.aiExplanation
+      ai_explanation: submission.aiExplanation,
+      hard_blocker: submission.hardBlocker
     }]);
 
   if (error) {
