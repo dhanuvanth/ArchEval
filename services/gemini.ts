@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { FormData, ModelChoice } from '../types';
 
 // Helper to validate the shape of the generated JSON
@@ -14,12 +14,13 @@ const isValidScenario = (data: any): data is FormData => {
 };
 
 export const generateRandomScenario = async (): Promise<FormData | null> => {
-  if (!process.env.API_KEY) {
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
     console.warn("API Key missing for scenario generation");
     return null;
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const genAI = new GoogleGenerativeAI(apiKey);
   
   // 1. Force a 50/50 Mathematical Split
   // The scoring threshold is 25. 
@@ -70,16 +71,17 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { 
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      generationConfig: {
         responseMimeType: 'application/json',
         temperature: 1.1, // High temperature for variety
       }
     });
-
-    const text = response.text;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
     if (!text) return null;
 
     const data = JSON.parse(text);
@@ -97,11 +99,12 @@ export const generateRandomScenario = async (): Promise<FormData | null> => {
 };
 
 export const generateEvaluation = async (formData: FormData, decision: ModelChoice, score: number): Promise<string> => {
-  if (!process.env.API_KEY) {
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
     return "API Key is missing. Unable to generate AI explanation.";
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const genAI = new GoogleGenerativeAI(apiKey);
 
   const prompt = `
     You are a Senior Solutions Architect. 
@@ -131,14 +134,16 @@ export const generateEvaluation = async (formData: FormData, decision: ModelChoi
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      generationConfig: {
         temperature: 0.7
       }
     });
-    return response.text || "Analysis generated, but no text returned.";
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text() || "Analysis generated, but no text returned.";
   } catch (error) {
     console.error("AI API Error:", error);
     return "Unable to generate AI explanation due to a network or API error.";
