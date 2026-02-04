@@ -3,7 +3,80 @@ import { Navbar } from './components/Navbar';
 import { ViewState, FormData, Submission, ModelChoice, GATEKEEPER_QUESTIONS, SCORED_QUESTIONS, SCORING_THRESHOLD, MAX_POSSIBLE_SCORE } from './types';
 import { generateEvaluation, generateRandomScenario } from './services/gemini';
 import { fetchSubmissions, saveSubmission } from './services/database';
-import { AlertCircle, ArrowRight, Lock, ShieldCheck, User, Activity, BrainCircuit, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight, Lock, ShieldCheck, User, Activity, BrainCircuit, Sparkles, ChevronRight, MessageSquare } from 'lucide-react';
+
+// --- Rich display for AI explanation: intro box, bullet cards, bold phrases (no bg) ---
+function renderBoldPhrases(text: string): React.ReactNode[] {
+  if (!text.trim()) return [];
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\*\*(.+)\*\*$/);
+    if (match) return <strong key={i} className="font-semibold text-slate-900">{match[1]}</strong>;
+    return part;
+  });
+}
+
+function ExplanationDisplay({ text, variant = 'result' }: { text: string; variant?: 'result' | 'dashboard' }) {
+  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const introLines: string[] = [];
+  const bulletLines: string[] = [];
+  let foundBullet = false;
+  for (const line of lines) {
+    const isBullet = /^[•\-\*]\s*/.test(line) || line.startsWith('•');
+    const bulletContent = line.replace(/^[•\-\*]\s*/, '').trim();
+    if (isBullet && bulletContent) {
+      foundBullet = true;
+      bulletLines.push(bulletContent);
+    } else if (!foundBullet && line) {
+      introLines.push(line);
+    } else if (foundBullet && line && !/^[•\-\*]\s*/.test(line)) {
+      bulletLines.push(line);
+    }
+  }
+  const introText = introLines.join(' ').trim();
+  const compact = variant === 'dashboard';
+
+  return (
+    <div className="space-y-4">
+      {introText && (
+        <div className={`rounded-xl border-l-4 ${compact ? 'p-4' : 'p-5'} bg-gradient-to-r from-indigo-50 to-slate-50 border-indigo-400 shadow-sm`}>
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">Key takeaway</p>
+              <p className={`text-slate-800 leading-relaxed ${compact ? 'text-sm' : 'text-base'}`}>
+                {renderBoldPhrases(introText)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {bulletLines.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Supporting points</p>
+          {bulletLines.map((line, i) => (
+            <div
+              key={i}
+              className={`flex items-start gap-3 rounded-lg border border-slate-200/80 bg-white shadow-sm hover:shadow-md transition-shadow ${compact ? 'p-3' : 'p-4'}`}
+            >
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5">
+                <ChevronRight className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className={`text-slate-700 leading-relaxed flex-1 ${compact ? 'text-sm' : 'text-base'}`}>
+                {renderBoldPhrases(line)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      {!introText && bulletLines.length === 0 && (
+        <p className="text-slate-700 leading-relaxed whitespace-pre-line">{text}</p>
+      )}
+    </div>
+  );
+}
 
 // --- MOCK DATA (Fallback) ---
 const MOCK_SUBMISSIONS: Submission[] = [
@@ -458,8 +531,8 @@ const ResultPage = ({ submission, onReset, onViewRules }: { submission: Submissi
           </div>
         </div>
 
-        <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed mb-10">
-           <p className="whitespace-pre-line">{submission.aiExplanation}</p>
+        <div className="mb-10">
+          <ExplanationDisplay text={submission.aiExplanation} variant="result" />
         </div>
 
         <div className="pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -555,140 +628,368 @@ const RulesPage = () => {
             </div>
         </div>
 
-        {/* Pros and Cons Section */}
+        {/* Pros and Cons Section — from doc: title (bold), one-line description, two bullet points */}
         <div className="bg-white rounded-xl shadow-md border border-slate-200 p-8">
             <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Model Class Comparison: Pros & Cons</h2>
             
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* SLM Pros and Cons */}
+            <div className="grid md:grid-cols-2 gap-8">
+                {/* SLM — When SLMs Are the Better Choice (Pros) / When SLMs Are Not (Cons) */}
                 <div className="border-2 border-emerald-200 rounded-xl p-6 bg-emerald-50/30">
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center mb-6">
                         <div className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-lg">SLM</div>
                         <span className="ml-3 text-sm text-slate-600">Small Language Model</span>
                     </div>
                     
-                    <div className="mb-6">
-                        <h3 className="font-bold text-emerald-800 mb-3 text-lg">✓ Pros</h3>
-                        <ul className="space-y-2 text-sm text-slate-700">
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Low Latency:</strong> Fast response times (often sub-100ms), ideal for real-time applications</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Predictable Costs:</strong> Fixed infrastructure costs, no per-token pricing</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Data Privacy:</strong> All data stays within your infrastructure, full control</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Offline Capable:</strong> Works without internet connectivity (edge, mobile, air-gapped)</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Deterministic:</strong> More consistent, reproducible outputs for specific tasks</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-emerald-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Customizable:</strong> Can be fine-tuned for domain-specific performance</span>
-                            </li>
-                        </ul>
+                    <div className="mb-8">
+                        <h3 className="font-bold text-emerald-800 mb-4 text-lg border-b border-emerald-200 pb-2">When SLMs Are the Better Choice</h3>
+                        <div className="space-y-5">
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">High Repeatability of Workflows</p>
+                                <p className="text-sm text-slate-600 mb-2">Predictable, repeatable processes where the same types of queries and tasks recur.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs excel when input patterns and expected outputs are stable over time.</li>
+                                    <li>• Reduces variability and supports consistent quality and compliance.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Accuracy Matters More Than Breadth</p>
+                                <p className="text-sm text-slate-600 mb-2">Narrow, well-defined use cases where precision in a specific domain is critical.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Fine-tuned SLMs can match or exceed LLM accuracy for focused tasks.</li>
+                                    <li>• Depth in one domain often beats broad but shallow general knowledge.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Latency and Throughput Are Business-Critical</p>
+                                <p className="text-sm text-slate-600 mb-2">Real-time or high-volume systems where response time and throughput drive user experience or cost.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Sub-100ms latency and high requests-per-second are achievable with on-prem or edge SLMs.</li>
+                                    <li>• Avoids network round-trips and API rate limits that constrain cloud LLMs.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Cost Efficiency at Scale (Not Just Model Cost)</p>
+                                <p className="text-sm text-slate-600 mb-2">High, sustained inference volume where total cost of ownership favors fixed infrastructure.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• At scale, per-token cloud pricing can exceed the cost of self-hosted inference.</li>
+                                    <li>• Predictable capex/opex supports budgeting and long-term planning.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Controlled Behavior Is Required</p>
+                                <p className="text-sm text-slate-600 mb-2">Regulatory, safety, or product requirements demand deterministic, auditable outputs.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs offer tighter control over generation and fewer unexpected behaviors.</li>
+                                    <li>• Easier to validate, certify, and explain for compliance and risk management.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Data Sovereignty and Deployment Control Matter</p>
+                                <p className="text-sm text-slate-600 mb-2">Data must never leave your environment due to policy, regulation, or security.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• On-device or on-prem deployment keeps all data and inference inside your boundary.</li>
+                                    <li>• Eliminates dependency on third-party data handling and cross-border transfer.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Human-in-the-Loop Improvements Are Feasible</p>
+                                <p className="text-sm text-slate-600 mb-2">You have domain experts and feedback loops to iteratively improve a focused model.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Continuous fine-tuning and curation are viable with a stable, narrow scope.</li>
+                                    <li>• Human feedback directly improves accuracy and behavior in that domain.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Stable Domain, Even If Surface Data Changes</p>
+                                <p className="text-sm text-slate-600 mb-2">The underlying task and ontology are stable; only surface wording or formats evolve.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs can be retrained or fine-tuned periodically without fundamental architecture changes.</li>
+                                    <li>• Evolution is manageable as long as the core use case does not shift.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Lower Long-Term Inference Cost Matters More Than Training Cost</p>
+                                <p className="text-sm text-slate-600 mb-2">Inference volume is high enough that amortized training cost is secondary to per-query cost.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Self-hosted SLM inference can have lower marginal cost than cloud API at scale.</li>
+                                    <li>• One-time or periodic training cost is offset by sustained inference savings.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">You Want Engineering Leverage, Not Just Model Power</p>
+                                <p className="text-sm text-slate-600 mb-2">Team can own pipelines, tooling, and optimization around a smaller, controllable model.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Custom preprocessing, caching, and routing multiply the value of a focused SLM.</li>
+                                    <li>• Engineering control over the full stack often beats raw model size alone.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     
                     <div>
-                        <h3 className="font-bold text-red-800 mb-3 text-lg">✗ Cons</h3>
-                        <ul className="space-y-2 text-sm text-slate-700">
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Infrastructure Burden:</strong> Requires hosting, maintenance, and DevOps expertise</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Limited Capabilities:</strong> Narrower knowledge, struggles with complex or diverse tasks</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Longer Time to Market:</strong> Setup, deployment, and fine-tuning takes weeks/months</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Ongoing Investment:</strong> Model updates, retraining, and monitoring required</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Expertise Required:</strong> Needs ML/AI talent for optimization and maintenance</span>
-                            </li>
-                        </ul>
+                        <h3 className="font-bold text-red-800 mb-4 text-lg border-b border-red-200 pb-2">When SLMs Are Not the Better Choice</h3>
+                        <div className="space-y-5">
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">High Domain Volatility Forces Continuous Fine-Tuning</p>
+                                <p className="text-sm text-slate-600 mb-2">The domain or task definition changes frequently; keeping the SLM current becomes expensive.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Constant retraining and data curation drain resources and delay time-to-value.</li>
+                                    <li>• Managed LLMs absorb domain shifts via provider updates with no extra effort from you.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Fine-Tuning Is Not the Real Cost — The Pipeline Is</p>
+                                <p className="text-sm text-slate-600 mb-2">Data pipelines, evaluation, and ops around training and deployment dominate total cost.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• ML ops, labeling, and monitoring often exceed the cost of the model itself.</li>
+                                    <li>• LLM APIs externalize most of this complexity to the provider.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Workflow Drift Without Domain Drift Still Hurts SLMs</p>
+                                <p className="text-sm text-slate-600 mb-2">User workflows or product requirements change even when the underlying domain is stable.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs tuned for one workflow may not generalize to new flows or UI changes.</li>
+                                    <li>• LLMs adapt to new prompts and use cases without retraining.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">SLMs Penalize You for Unpredictable Query Mix</p>
+                                <p className="text-sm text-slate-600 mb-2">Query types are diverse or shifting; a single narrow model cannot cover them well.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Multiple specialized SLMs increase complexity and integration cost.</li>
+                                    <li>• A general-purpose LLM handles variety out of the box.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Marginal Cost Savings Can Be Overwhelmed by Operational Overhead</p>
+                                <p className="text-sm text-slate-600 mb-2">Savings from self-hosted inference are offset by DevOps, monitoring, and incident response.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Staff and tooling for 24/7 model serving can exceed the delta vs. API costs.</li>
+                                    <li>• Managed LLMs turn inference into a variable cost with minimal ops burden.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">SLMs Do Not Age Gracefully Without Maintenance</p>
+                                <p className="text-sm text-slate-600 mb-2">Models drift or become outdated without regular retraining and data refresh.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Stale SLMs lose accuracy and relevance; upkeep is ongoing and non-trivial.</li>
+                                    <li>• Provider-updated LLMs stay current without your team’s direct effort.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Engineering Focus Shifts Away from Business Value</p>
+                                <p className="text-sm text-slate-600 mb-2">Team spends more time on model and infra than on product and user value.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Building and maintaining SLM pipelines can distract from core business goals.</li>
+                                    <li>• LLM APIs let engineering focus on integration and experience, not model ops.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">SLMs Lock You Into Narrow ROI Assumptions</p>
+                                <p className="text-sm text-slate-600 mb-2">ROI depends on high volume and stable scope; if scope expands, assumptions break.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• New use cases or products may require a different model class entirely.</li>
+                                    <li>• LLMs offer flexibility to explore new use cases without upfront model commitment.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Generalization Becomes More Valuable Than Peak Accuracy</p>
+                                <p className="text-sm text-slate-600 mb-2">Coverage across many tasks matters more than best-in-class performance on one task.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• A single generalist LLM can serve many workflows with good-enough quality.</li>
+                                    <li>• Maintaining multiple SLMs for breadth is costly and complex.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Time-to-Value Favors Managed or Mini/Nano LLMs</p>
+                                <p className="text-sm text-slate-600 mb-2">You need production value in weeks, not months; building SLM pipelines takes too long.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• API-based or small-footprint LLMs get you to market faster with less upfront investment.</li>
+                                    <li>• SLM ROI only materializes when you have time and volume to justify the build.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* LLM Pros and Cons */}
+                {/* LLM — Pros and Cons (parallel structure, professional titles) */}
                 <div className="border-2 border-purple-200 rounded-xl p-6 bg-purple-50/30">
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center mb-6">
                         <div className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-lg">LLM</div>
                         <span className="ml-3 text-sm text-slate-600">Large Language Model</span>
                     </div>
                     
-                    <div className="mb-6">
-                        <h3 className="font-bold text-purple-800 mb-3 text-lg">✓ Pros</h3>
-                        <ul className="space-y-2 text-sm text-slate-700">
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Broad Intelligence:</strong> Handles diverse, complex, and open-ended tasks</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Zero Infrastructure:</strong> Fully managed service, no DevOps or hosting required</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Rapid Deployment:</strong> Production-ready in days/weeks via API</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Continuous Updates:</strong> Provider handles improvements, new features automatically</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Scalability:</strong> Auto-scales to handle any volume without infrastructure planning</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-purple-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Experimentation:</strong> Easy to test, iterate, and pivot without retraining</span>
-                            </li>
-                        </ul>
+                    <div className="mb-8">
+                        <h3 className="font-bold text-purple-800 mb-4 text-lg border-b border-purple-200 pb-2">When LLMs Are the Better Choice</h3>
+                        <div className="space-y-5">
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Broad Task Coverage and Generalization</p>
+                                <p className="text-sm text-slate-600 mb-2">Use cases span many domains or query types; one model should handle variety without retraining.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• General-purpose LLMs deliver good-enough quality across diverse tasks from a single API.</li>
+                                    <li>• Reduces the need for multiple specialized models and complex routing logic.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Zero Infrastructure and Operational Overhead</p>
+                                <p className="text-sm text-slate-600 mb-2">Organization prefers not to host or maintain AI infrastructure; managed APIs are acceptable.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• No DevOps, GPU provisioning, or model deployment; provider handles scaling and availability.</li>
+                                    <li>• Engineering can focus on product and integration instead of ML ops.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Rapid Time-to-Value and Experimentation</p>
+                                <p className="text-sm text-slate-600 mb-2">Speed to production and ability to iterate matter more than marginal cost or latency.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• API-based LLMs enable production in days or weeks with minimal upfront investment.</li>
+                                    <li>• Easy to test new use cases and prompts without retraining or redeploying.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Continuous Improvement Without Your Effort</p>
+                                <p className="text-sm text-slate-600 mb-2">Provider updates models and capabilities; you benefit without running training or refresh pipelines.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• New features, better accuracy, and safety improvements ship automatically.</li>
+                                    <li>• Avoids the ongoing cost of keeping a self-hosted model current.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Elastic Scale and Variable Demand</p>
+                                <p className="text-sm text-slate-600 mb-2">Traffic is spiky or unpredictable; you want pay-per-use instead of fixed capacity.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Managed LLMs scale automatically; no need to provision for peak or overbuild for average.</li>
+                                    <li>• Cost aligns with actual usage, which suits experimentation and early-stage products.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Flexibility Over Determinism</p>
+                                <p className="text-sm text-slate-600 mb-2">Use case benefits from creative or diverse outputs; strict reproducibility is not required.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• LLMs support open-ended generation, summarization, and multi-turn dialogue.</li>
+                                    <li>• Acceptable trade-off when regulatory or safety constraints do not demand full control.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Data Residency and External API Are Acceptable</p>
+                                <p className="text-sm text-slate-600 mb-2">Sending data to a third-party API is allowed by policy, regulation, and risk tolerance.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• No need for on-prem or edge deployment; cloud API meets compliance and security requirements.</li>
+                                    <li>• Simplifies architecture and avoids building and securing inference infrastructure.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Evolving Workflows and Product Scope</p>
+                                <p className="text-sm text-slate-600 mb-2">Product and user workflows will change; the model must adapt without retraining cycles.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Prompt and integration changes extend LLM behavior to new flows quickly.</li>
+                                    <li>• Avoids lock-in to a narrow, static SLM tuned for today’s workflow only.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Lower Upfront Cost and Faster ROI Horizon</p>
+                                <p className="text-sm text-slate-600 mb-2">Capital and time are limited; you need value before investing in training and pipelines.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• No large upfront training or infra cost; pay as you grow.</li>
+                                    <li>• ROI can be measured in weeks when usage and use cases are still evolving.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Leverage Provider Capability Over In-House Depth</p>
+                                <p className="text-sm text-slate-600 mb-2">Relying on a provider’s scale and research beats building deep in-house ML for general intelligence.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Access to state-of-the-art models without owning the full stack.</li>
+                                    <li>• Frees talent to work on domain logic, UX, and integration rather than model engineering.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     
                     <div>
-                        <h3 className="font-bold text-red-800 mb-3 text-lg">✗ Cons</h3>
-                        <ul className="space-y-2 text-sm text-slate-700">
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Usage-Based Costs:</strong> Unpredictable expenses that scale with volume (per-token pricing)</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Higher Latency:</strong> Slower responses (typically 500ms-3s), unsuitable for real-time needs</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Data Privacy Risks:</strong> Data leaves your infrastructure, sent to third-party provider</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Vendor Lock-In:</strong> Dependency on external provider, potential for service changes</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Requires Connectivity:</strong> Cannot operate offline or in air-gapped environments</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-red-600 mr-2 flex-shrink-0">•</span>
-                                <span><strong>Less Control:</strong> Limited customization, cannot guarantee deterministic outputs</span>
-                            </li>
-                        </ul>
+                        <h3 className="font-bold text-red-800 mb-4 text-lg border-b border-red-200 pb-2">When LLMs Are Not the Better Choice</h3>
+                        <div className="space-y-5">
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Latency and Throughput Are Non-Negotiable</p>
+                                <p className="text-sm text-slate-600 mb-2">Sub-100ms or very high QPS is required; API latency and rate limits are unacceptable.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Cloud round-trips and provider throttling prevent meeting strict SLA or UX requirements.</li>
+                                    <li>• On-device or edge SLMs are the only way to guarantee low latency at scale.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Data Must Never Leave Your Boundary</p>
+                                <p className="text-sm text-slate-600 mb-2">Regulation, policy, or security forbids sending data to external APIs.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• LLM APIs require data to leave your environment; SLMs keep inference on-prem or on-device.</li>
+                                    <li>• No amount of contracting or encryption satisfies strict data sovereignty in some sectors.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Usage-Based Cost Becomes Prohibitive at Scale</p>
+                                <p className="text-sm text-slate-600 mb-2">High, sustained volume makes per-token pricing more expensive than self-hosted inference.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• At millions of queries, API costs can exceed the TCO of dedicated SLM infrastructure.</li>
+                                    <li>• Fixed-cost SLM deployment supports predictable budgeting at scale.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Controlled, Auditable Behavior Is Mandatory</p>
+                                <p className="text-sm text-slate-600 mb-2">Regulatory or safety requirements demand deterministic, explainable, and certifiable outputs.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• LLM behavior can vary and is harder to fully control and audit.</li>
+                                    <li>• SLMs offer tighter control and clearer attribution for compliance and certification.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Offline or Air-Gapped Deployment Is Required</p>
+                                <p className="text-sm text-slate-600 mb-2">Environments have no or restricted connectivity; cloud API is not an option.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• LLMs depend on network access; SLMs run fully on-device or in isolated networks.</li>
+                                    <li>• Critical for field, mobile, or secure environments where connectivity is limited.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Narrow, Stable Use Case Favors Specialized Accuracy</p>
+                                <p className="text-sm text-slate-600 mb-2">One well-defined task where peak accuracy matters more than breadth.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• A fine-tuned SLM can outperform a generalist LLM on that task at lower marginal cost.</li>
+                                    <li>• Investment in one focused model pays off when the use case is long-lived and high-volume.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Vendor Lock-In and Provider Risk Are Unacceptable</p>
+                                <p className="text-sm text-slate-600 mb-2">Dependence on a single provider’s API, pricing, or availability is too risky.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs give you ownership of the model and deployment; you are not tied to one vendor.</li>
+                                    <li>• Mitigates risk of API changes, discontinuation, or unexpected cost increases.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Engineering Wants Full Stack Control</p>
+                                <p className="text-sm text-slate-600 mb-2">Team has the skills and mandate to own pipelines, optimization, and model lifecycle.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Custom preprocessing, caching, and routing with an SLM can yield better ROI than a black-box API.</li>
+                                    <li>• Engineering leverage multiplies when you control the entire inference stack.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Long-Term Inference Cost Dominates TCO</p>
+                                <p className="text-sm text-slate-600 mb-2">Amortized training and ops cost is small relative to inference volume over years.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• Self-hosted SLM inference can have lower marginal cost over time than API at scale.</li>
+                                    <li>• One-time or periodic training cost is justified by sustained inference savings.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-900 mb-1">Repeatability and Consistency Are Product Requirements</p>
+                                <p className="text-sm text-slate-600 mb-2">Users or downstream systems expect stable, reproducible outputs for the same input.</p>
+                                <ul className="text-sm text-slate-700 space-y-1 ml-0 list-none">
+                                    <li>• SLMs support deterministic or low-variance behavior more easily than general-purpose LLMs.</li>
+                                    <li>• Critical for automation, testing, and compliance where variability is undesirable.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -926,8 +1227,8 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                                             <p className="text-slate-500 text-sm">Analysis based on deployment and operational constraints</p>
                                         </div>
                                     </div>
-                                    <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed mb-8">
-                                        <p className="whitespace-pre-line">{selectedSubmission.aiExplanation}</p>
+                                    <div className="mb-8">
+                                        <ExplanationDisplay text={selectedSubmission.aiExplanation} variant="dashboard" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-100">
                                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">

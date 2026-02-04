@@ -136,14 +136,14 @@ export const generateEvaluation = async (formData: FormData, decision: ModelChoi
        - Explain WHY this supports the decision
     4. Use ONLY the bullet character • (not -, *, or numbers)
     5. Be thorough and detailed - aim for 250-300 words total
-    6. Use plain text only (no markdown formatting)
+    6. In each bullet and in the opening sentence, wrap the ONE most important phrase in **double asterisks** so it will display as bold. Do not overuse: one bold phrase per bullet and one in the opening line. Choose the phrase that best captures the key reason (e.g. the conclusion or the decisive factor). No other markdown.
     
     FORMAT EXAMPLE:
-    The ${decision === ModelChoice.SLM ? 'Small Language Model (SLM)' : 'Large Language Model (LLM)'} was selected because [primary reason based on hard blocker or top factors].
+    The ${decision === ModelChoice.SLM ? 'Small Language Model (SLM)' : 'Large Language Model (LLM)'} was selected because **primary reason in bold**.
     
-    • [Question 1]: The user rated [X/5], indicating [explanation of how this supports the decision]
-    • [Question 2]: With a score of [Y/5], this shows [detailed reasoning]
-    • [Question 3]: [Gatekeeper response] - This is a hard requirement that [explanation]
+    • [Question 1]: The user rated [X/5], **key takeaway phrase in bold** — rest of explanation
+    • [Question 2]: With a score of [Y/5], **key phrase** — detailed reasoning
+    • [Question 3]: [Gatekeeper response] — **hard requirement in bold** — explanation
     [Continue for all relevant responses...]
   `;
 
