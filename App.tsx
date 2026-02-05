@@ -253,8 +253,15 @@ export default function App() {
         {view === ViewState.ADMIN && <AdminPage submissions={submissions} />}
       </main>
       
-      <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-500 text-sm">
-        <p>&copy; 2026 InfoVision. SLM vs LLM Framework.</p>
+      <footer className="bg-white border-t border-slate-200 py-8">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-slate-500 text-sm">
+          <img
+            src="/infovision_logo.p"
+            alt="InfoVision"
+            className="h-8 w-auto object-contain opacity-90"
+          />
+          <p>&copy; 2026 InfoVision. SLM vs LLM Framework.</p>
+        </div>
       </footer>
     </div>
   );

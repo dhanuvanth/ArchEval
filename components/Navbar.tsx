@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewState } from '../types';
-import { User, Activity, LayoutDashboard } from 'lucide-react';
+import { User, LayoutDashboard } from 'lucide-react';
 
 interface NavbarProps {
   currentView: ViewState;
@@ -13,9 +13,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, changeView, isAdmin
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between h-20">
-          <div className="flex items-center cursor-pointer" onClick={() => changeView(ViewState.ASSESSMENT)}>
-            <Activity className="h-9 w-9 text-indigo-600" />
-            <span className="ml-3 text-2xl font-bold text-slate-800 tracking-tight">Model Class Evaluation</span>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => changeView(ViewState.ASSESSMENT)}>
+            <img
+              src="/infovision_logo.png"
+              alt="InfoVision"
+              className="h-12 w-auto object-contain mb-1"
+            />
+            <span className="text-xl font-bold text-slate-800 tracking-tight">Model Class Evaluation</span>
           </div>
           
           <div className="flex items-center space-x-4">
