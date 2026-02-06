@@ -6,8 +6,8 @@ import { fetchSubmissions, saveSubmission } from './services/database';
 import { AlertCircle, ArrowRight, Lock, ShieldCheck, User, Activity, BrainCircuit, Sparkles, ChevronRight, MessageSquare } from 'lucide-react';
 
 // --- Rich display for AI explanation: intro box, bullet cards, bold phrases (no bg) ---
-function renderBoldPhrases(text: string): React.ReactNode[] {
-  if (!text.trim()) return [];
+function renderBoldPhrases(text: string | undefined): React.ReactNode[] {
+  if (text == null || typeof text !== 'string' || !text.trim()) return [];
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     const match = part.match(/^\*\*(.+)\*\*$/);
@@ -16,8 +16,9 @@ function renderBoldPhrases(text: string): React.ReactNode[] {
   });
 }
 
-function ExplanationDisplay({ text, variant = 'result' }: { text: string; variant?: 'result' | 'dashboard' }) {
-  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+function ExplanationDisplay({ text, variant = 'result' }: { text: string | undefined; variant?: 'result' | 'dashboard' }) {
+  const safeText = text != null && typeof text === 'string' ? text : '';
+  const lines = safeText.split(/\n/).map(l => l.trim()).filter(Boolean);
   const introLines: string[] = [];
   const bulletLines: string[] = [];
   let foundBullet = false;
@@ -72,7 +73,9 @@ function ExplanationDisplay({ text, variant = 'result' }: { text: string; varian
         </div>
       )}
       {!introText && bulletLines.length === 0 && (
-        <p className="text-slate-700 leading-relaxed whitespace-pre-line">{text}</p>
+        <p className="text-slate-500 italic">
+          {safeText ? safeText : 'No explanation available. The AI analysis may still be loading or was not saved.'}
+        </p>
       )}
     </div>
   );
@@ -256,7 +259,7 @@ export default function App() {
       <footer className="bg-white border-t border-slate-200 py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-slate-500 text-sm">
           <img
-            src="/infovision_logo.p"
+            src="/infovision_logo.png"
             alt="InfoVision"
             className="h-8 w-auto object-contain opacity-90"
           />
@@ -539,7 +542,7 @@ const ResultPage = ({ submission, onReset, onViewRules }: { submission: Submissi
         </div>
 
         <div className="mb-10">
-          <ExplanationDisplay text={submission.aiExplanation} variant="result" />
+          <ExplanationDisplay text={submission.aiExplanation ?? (submission as any).ai_explanation} variant="result" />
         </div>
 
         <div className="pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1235,7 +1238,7 @@ const AdminPage = ({ submissions }: { submissions: Submission[] }) => {
                                         </div>
                                     </div>
                                     <div className="mb-8">
-                                        <ExplanationDisplay text={selectedSubmission.aiExplanation} variant="dashboard" />
+                                        <ExplanationDisplay text={selectedSubmission.aiExplanation ?? (selectedSubmission as any).ai_explanation} variant="dashboard" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-100">
                                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">

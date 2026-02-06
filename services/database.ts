@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Submission } from '../types';
+import { Submission, MAX_POSSIBLE_SCORE } from '../types';
 
 /**
  * SUPABASE SETUP INSTRUCTIONS
@@ -47,17 +47,21 @@ export const fetchSubmissions = async (): Promise<Submission[]> => {
     return [];
   }
 
-  // Ensure dates are parsed correctly from JSON
-  return (data || []).map((d: any) => ({
-    ...d,
-    // Map database 'created_at' to app 'timestamp'
-    timestamp: new Date(d.created_at), 
-    // Ensure data JSONB field is handled if Supabase returns it as string or object
-    data: typeof d.data === 'string' ? JSON.parse(d.data) : d.data,
-    // Map database column names back to TypeScript interface if needed
-    user: d.user_name || d.user,
-    hardBlocker: d.hard_blocker
-  })) as Submission[];
+  // Map DB rows (snake_case) to app Submission shape (camelCase)
+  return (data || []).map((d: any) => {
+    const rawExplanation = d.ai_explanation ?? d.aiExplanation ?? '';
+    return {
+      id: d.id,
+      user: d.user_name ?? d.user ?? '',
+      timestamp: new Date(d.created_at),
+      data: typeof d.data === 'string' ? JSON.parse(d.data) : d.data,
+      score: Number(d.score) ?? 0,
+      maxScore: d.max_score ?? MAX_POSSIBLE_SCORE,
+      decision: d.decision ?? '',
+      aiExplanation: typeof rawExplanation === 'string' ? rawExplanation : String(rawExplanation),
+      hardBlocker: d.hard_blocker ?? d.hardBlocker,
+    } as Submission;
+  });
 };
 
 export const saveSubmission = async (submission: Submission): Promise<boolean> => {
